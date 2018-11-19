@@ -1,0 +1,70 @@
+-- This file has been generated from package.yaml by hpack version 0.28.2.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: f27fd3b20dd84df8252c69d56a1606febd8d36943488a326f0e52002ba0ae51f
+
+name:           haskell-websockets
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/githubuser/haskell-websockets#readme>
+homepage:       https://github.com/githubuser/haskell-websockets#readme
+bug-reports:    https://github.com/githubuser/haskell-websockets/issues
+author:         Author name here
+maintainer:     example@example.com
+copyright:      2018 Author name here
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+cabal-version:  >= 1.10
+extra-source-files:
+    ChangeLog.md
+    README.org
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/haskell-websockets
+
+library
+  exposed-modules:
+      Lib
+  other-modules:
+      Paths_haskell_websockets
+  hs-source-dirs:
+      src
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , text
+    , websockets
+  default-language: Haskell2010
+
+executable server
+  main-is: Main.hs
+  other-modules:
+      Paths_haskell_websockets
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , haskell-websockets
+    , text
+    , websockets
+  default-language: Haskell2010
+
+test-suite haskell-websockets-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_haskell_websockets
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , haskell-websockets
+    , text
+    , websockets
+  default-language: Haskell2010
