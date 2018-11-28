@@ -1,10 +1,10 @@
 name:                haskell-websockets
 version:             0.1.0.0
-github:              "githubuser/haskell-websockets"
+github:              "edububa/TFG_back"
 license:             BSD3
-author:              "Author name here"
-maintainer:          "example@example.com"
-copyright:           "2018 Author name here"
+author:              "Luis Eduardo Bueso de Barrio"
+maintainer:          "luiseduardo.bueso.debarrio@alumnos.upm.es"
+copyright:           "2018 Luis Eduardo Bueso de Barrio"
 
 extra-source-files:
 - README.org
@@ -17,13 +17,15 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/haskell-websockets#readme>
+description:         Please see the README on GitHub at <https://github.com/githubuser/TFG_back#readme>
 
 dependencies:
 - base >= 4.7 && < 5
 - text
 - websockets
 - aeson
+- megaparsec
+- parser-combinators
 
 library:
   source-dirs: src

@@ -7,6 +7,7 @@ import Control.Monad (forever)
 import qualified Network.WebSockets as WS
 
 import Lib
+import ParsingLib
 
 type ServerState = [Text]
 
@@ -20,11 +21,12 @@ application state pending = do
   forever $ do
     msg  <- WS.receiveData conn
     putStrLn $ "[ENCODED]: " <> (show msg)
-    let cells  = (decode msg) :: Maybe [Cell]
-        json   = maybe "Error" encode cells
+    let cells = (decode msg) :: Maybe [Cell]
+        json  = maybe "Error" (encode . map updateEvalResult) cells
     putStrLn $ "[DECODED]: " <> maybe "Error" show cells
-
     WS.sendTextData conn $ json
+      where updateEvalResult cell = cell { evalResult = parseAndEval (cellContent cell) }
+            cellContent cell = maybe "" id (content cell)
 
 main :: IO ()
 main = do
