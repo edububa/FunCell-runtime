@@ -63,11 +63,6 @@ parens = between (symbol "(") (symbol ")")
 integer :: Parser Integer
 integer = lexeme L.decimal
 
--- | 'semi' parses a semicolon.
-
-semi :: Parser String
-semi = symbol ";"
-
 rword :: String -> Parser ()
 rword w = (lexeme . try) (string w *> notFollowedBy alphaNumChar)
 
@@ -86,10 +81,7 @@ whileParser :: Parser Stmt
 whileParser = between sc eof stmt
 
 stmt :: Parser Stmt
-stmt = head <$> sepBy1 stmt' semi
-
-stmt' :: Parser Stmt
-stmt' = arithmeticStmt
+stmt = arithmeticStmt
   <|> booleanStmt
   <|> parens stmt
 
@@ -165,9 +157,9 @@ evalStmt :: Stmt -> String
 evalStmt (A x) = show $ evalAExpr x
 evalStmt (B y) = show $ evalBExpr y
 
--- parseContent :: String -> Either (ParseError (Token s) e) a
 parseAndEval :: String -> Either String String
-parseAndEval x = case res of
-                   (Right x) -> Right $ evalStmt x
-                   (Left _)  -> Left  $ "Error parsing expression"
+parseAndEval "" = Right ""
+parseAndEval x  = case res of
+                    (Right x) -> Right $ evalStmt x
+                    (Left  y) -> Left  $ parseErrorTextPretty y
   where res = parse whileParser "" x

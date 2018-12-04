@@ -2,7 +2,8 @@
 module Main where
 
 import Data.Text (Text)
-import Data.Aeson (decode, encode)
+import Data.Aeson (encode, eitherDecode)
+import Data.Maybe (isJust)
 import Control.Monad (forever)
 import qualified Network.WebSockets as WS
 
@@ -20,13 +21,16 @@ application state pending = do
   conn <- WS.acceptRequest pending
   forever $ do
     msg  <- WS.receiveData conn
-    putStrLn $ "[ENCODED]: " <> (show msg)
-    let cells = (decode msg) :: Maybe [Cell]
-        json  = maybe "Error" (encode . map updateEvalResult) cells
-    putStrLn $ "[DECODED]: " <> maybe "Error" show cells
-    WS.sendTextData conn $ json
-      where updateEvalResult cell = cell { evalResult = parseAndEval (cellContent cell) }
-            cellContent cell = maybe "" id (content cell)
+    putStrLn $ "[RECEIVED]: " <> (show msg)
+    let cell = (eitherDecode msg) :: Either String Cell
+    either
+      (\x -> putStrLn $ "[ERROR]: " <> x)
+      (updateEvalResult conn)
+      cell
+      where updateEvalResult conn cell = do
+              let cell' = cell { evalResult = maybe (Right "") parseAndEval . content $ cell }
+              WS.sendTextData conn $ encode cell'
+              return ()
 
 main :: IO ()
 main = do

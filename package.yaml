@@ -26,6 +26,7 @@ dependencies:
 - aeson
 - megaparsec
 - parser-combinators
+- haskcell-lib
 
 library:
   source-dirs: src

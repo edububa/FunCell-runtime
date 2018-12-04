@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: da1de633dbc37f862ab69ef92004e42a73cffaa67995c7b1a76089e3f6ed46b1
+-- hash: a4d1e342538d523ede2cfe31aee1de93ff3f039f29cf6aa280b905e7fec6dd34
 
 name:           haskell-websockets
 version:        0.1.0.0
@@ -36,6 +36,7 @@ library
   build-depends:
       aeson
     , base >=4.7 && <5
+    , haskcell-lib
     , megaparsec
     , parser-combinators
     , text
@@ -52,6 +53,7 @@ executable server
   build-depends:
       aeson
     , base >=4.7 && <5
+    , haskcell-lib
     , haskell-websockets
     , megaparsec
     , parser-combinators
@@ -70,6 +72,7 @@ test-suite haskell-websockets-test
   build-depends:
       aeson
     , base >=4.7 && <5
+    , haskcell-lib
     , haskell-websockets
     , megaparsec
     , parser-combinators
