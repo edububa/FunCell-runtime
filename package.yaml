@@ -1,6 +1,6 @@
-name:                haskell-websockets
+name:                FunCell-runtime
 version:             0.1.0.0
-github:              "edububa/TFG_back"
+github:              "edububa/FunCell-runtime"
 license:             BSD3
 author:              "Luis Eduardo Bueso de Barrio"
 maintainer:          "luiseduardo.bueso.debarrio@alumnos.upm.es"
@@ -17,7 +17,7 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/TFG_back#readme>
+description:         Please see the README on GitHub at <https://github.com/edububa/FunCell-runtime#readme>
 
 dependencies:
 - base >= 4.7 && < 5
@@ -25,8 +25,11 @@ dependencies:
 - websockets
 - aeson
 - megaparsec
+- hint
 - parser-combinators
 - haskcell-lib
+- hspec
+
 
 library:
   source-dirs: src
@@ -40,7 +43,7 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - haskell-websockets
+    - FunCell-runtime
 
 tests:
   haskell-websockets-test:
@@ -51,4 +54,4 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - haskell-websockets
+    - FunCell-runtime

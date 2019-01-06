@@ -1,4 +1,4 @@
-* Haskell WebSockets Example
+* FunCell: Functional SpreadSheet runtime
 
 - Compilation:
 #+BEGIN_SRC shell

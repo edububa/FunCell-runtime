@@ -161,5 +161,5 @@ parseAndEval :: String -> Either String String
 parseAndEval "" = Right ""
 parseAndEval x  = case res of
                     (Right x) -> Right $ evalStmt x
-                    (Left  y) -> Left  $ parseErrorTextPretty y
+                    (Left  y) -> Left  $ errorBundlePretty y
   where res = parse whileParser "" x
