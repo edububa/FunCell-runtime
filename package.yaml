@@ -29,6 +29,7 @@ dependencies:
 - haskcell-lib
 - hspec
 - either
+- containers
 
 library:
   source-dirs: src
