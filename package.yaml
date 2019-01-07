@@ -28,7 +28,7 @@ dependencies:
 - parser-combinators
 - haskcell-lib
 - hspec
-
+- either
 
 library:
   source-dirs: src

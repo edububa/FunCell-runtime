@@ -5,10 +5,11 @@ import Data.Text (Text)
 import Data.Aeson (encode, eitherDecode)
 import Data.Maybe (isJust)
 import Control.Monad (forever)
+import Control.Monad.IO.Class (liftIO)
 import qualified Network.WebSockets as WS
 
 import Lib
-import ParsingLib
+import EvalLib
 
 type ServerState = [Text]
 
@@ -22,15 +23,17 @@ application state pending = do
   forever $ do
     msg  <- WS.receiveData conn
     putStrLn $ "[RECEIVED]: " <> (show msg)
-    let cell = (eitherDecode msg) :: Either String Cell
-    either
-      (\x -> putStrLn $ "[ERROR]: " <> x)
-      (updateEvalResult conn)
-      cell
-      where updateEvalResult conn cell = do
-              let cell' = cell { evalResult = maybe (Right "") parseAndEval . content $ cell }
-              WS.sendTextData conn $ encode cell'
-              return ()
+    case (eitherDecode msg) :: Either String Cell of
+      Left  x -> putStrLn $ "[ERROR]: " <> x
+      Right x -> evalAndSendCell conn x
+
+evalAndSendCell :: WS.Connection -> Cell -> IO ()
+evalAndSendCell conn cell = do
+  case content cell of
+    Nothing -> return ()
+    Just  x -> do
+      res <- parseAndEval x
+      WS.sendTextData conn . encode $ cell { evalResult = res }
 
 main :: IO ()
 main = do

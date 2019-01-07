@@ -1,16 +1,11 @@
 * FunCell: Functional SpreadSheet runtime
 
-- Compilation:
-#+BEGIN_SRC shell
+  - Compilation:
+  #+BEGIN_SRC shell
 $ stack build
-#+END_SRC
+  #+END_SRC
 
-- Server execution:
-#+BEGIN_SRC shell
+  - Server execution:
+  #+BEGIN_SRC shell
 $ stack exec server
-#+END_SRC
-
-- Client execution:
-#+BEGIN_SRC shell
-$ stack exec client
-#+END_SRC
+  #+END_SRC
