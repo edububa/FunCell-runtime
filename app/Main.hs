@@ -15,8 +15,14 @@ import EvalLib
 
 type ServerState = SpreadSheet Cell
 
+nCols :: Int
+nCols = length ['A'..'Z']
+
+nRows :: Int
+nRows = 20
+
 newServerState :: ServerState
-newServerState = createSpreadSheet emptyCell 100 100
+newServerState = createSpreadSheet emptyCell nCols 20
 
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do
@@ -37,7 +43,8 @@ evalUpdateAndSend conn state cell =
   case content cell of
     Nothing -> return ()
     Just  x -> do
-      res <- parseAndEval x
+      s   <- readMVar state
+      res <- parseAndEval x s
       let cell' = cell { evalResult = res }
       modifyMVar_ state $ modifyServerState cell'
       WS.sendTextData conn . encode $ cell'

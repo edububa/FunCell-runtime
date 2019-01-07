@@ -30,6 +30,8 @@ dependencies:
 - hspec
 - either
 - containers
+- regex-compat
+- MissingH
 
 library:
   source-dirs: src

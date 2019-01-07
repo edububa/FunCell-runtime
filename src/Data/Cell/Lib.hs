@@ -6,8 +6,7 @@ import Data.Foldable (foldr)
 import Data.Either (Either(..))
 import Data.Map (empty, insert, lookup)
 import qualified Data.Map as Map
-import Data.Maybe (Maybe(..), maybe)
-import Data.Set (Set, member)
+import Data.Maybe (Maybe(..), maybe, catMaybes)
 
 -- Lib functions
 createSpreadSheet :: ((Row, Col) -> a) -> Int -> Int -> SpreadSheet a
@@ -29,9 +28,8 @@ updateCellVal r c = insert (r, c)
 getCell :: Int -> Int -> SpreadSheet a -> Maybe a
 getCell r c = Map.lookup (r, c)
 
--- getCells :: Set (Row, Col) -> SpreadSheet a -> [a]
--- getCells keys = fromFoldable . filterKeys f
---   where f k = Map.member k keys
+getCell' :: SpreadSheet a -> (Int, Int) -> Maybe a
+getCell' table k = Map.lookup k table
 
 updateCell :: Cell -> SpreadSheet Cell -> SpreadSheet Cell
 updateCell c = updateCellVal (row c) (col c) c
