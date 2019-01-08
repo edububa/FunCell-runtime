@@ -1,6 +1,15 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Data.Cell where
+{-| This module contains the type definitions and instances to deal with
+    the Cells. -}
+module Data.Cell
+  ( -- * Type synonyms
+    Row
+  , Col
+  , SpreadSheet
+    -- * Data type
+  , Cell(..)
+  ) where
 
 import Data.Aeson
 import Data.Text

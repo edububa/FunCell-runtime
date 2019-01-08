@@ -29,7 +29,7 @@ application state pending = do
   conn <- WS.acceptRequest pending
   forever $ do
     msg  <- WS.receiveData conn
-    putStrLn $ "[RECEIVED]: " <> (show msg)
+    -- putStrLn $ "[RECEIVED]: " <> (show msg)
     case (eitherDecode msg) :: Either String Cell of
       Left  x    -> putStrLn $ "[ERROR]: " <> x
       Right cell -> evalUpdateAndSend conn state cell
@@ -38,15 +38,16 @@ modifyServerState :: Monad m => Cell -> SpreadSheet Cell -> m (SpreadSheet Cell)
 modifyServerState cell s = return $ updateCell cell s
 
 evalUpdateAndSend :: WS.Connection -> MVar (SpreadSheet Cell) -> Cell -> IO ()
-evalUpdateAndSend conn state cell =
+evalUpdateAndSend conn state cell = do
+  putStrLn $ "[RECEIVED]: \t\t" <> show cell
   case content cell of
     Nothing -> return ()
     Just  x -> do
       s   <- readMVar state
       let (Right y) = solveDependencies x s
-      putStrLn $ "[SOLVED_DEPENDENCIES]: " <> y
+      putStrLn $ "[SOLVED_DEPENDENCIES]: \t" <> y
       res <- evalCell y
-      putStrLn $ "[EVAL_RESULT]: " <> (show res)
+      putStrLn $ "[EVAL_RESULT]: \t" <> (show res)
       let cell' = cell { evalResult = res }
       modifyMVar_ state $ modifyServerState cell'
       WS.sendTextData conn . encode $ cell'

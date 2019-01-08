@@ -7,7 +7,6 @@ import Data.String.Utils (replace)
 import Language.Haskell.Interpreter as I
 import Text.ParserCombinators.ReadP
 
-
 import Lib.Indexing
 import Data.Cell
 import Data.Cell.Lib
@@ -17,11 +16,11 @@ type Error = String
 evalCell ""    = return $ Right ""
 evalCell input = do
   res <- I.runInterpreter $ do { setImports ["Prelude"]; eval input}
-  return $ mapLeft show res
+  return $ mapLeft (const "Type error") res
 
 solveDependencies :: String -> SpreadSheet Cell -> Either Error String
 solveDependencies xs state =
-  case parseIndices xs of
+  case parseReferences xs of
     [] -> Right xs
     indices -> Right $ foldr applyValues xs . rights .
                fmap cellToIndexAndVal . catMaybes .

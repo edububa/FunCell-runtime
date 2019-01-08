@@ -1,4 +1,20 @@
-module Lib.Indexing where
+{-| This module contains functions to deal with indices and references
+    in spread sheets.-}
+module Lib.Indexing
+  ( -- * Parsing
+    parseReferences
+  , referencesRegex
+  , columnRegex
+  , rowRegex
+  , matchReferences
+  , obtainRowCol
+    -- * Auxiliar
+  , rowColToInt
+  , rowToInt
+  , colToInt
+  , intToRow
+  , intToCol
+  ) where
 
 import Data.Cell
 
@@ -7,22 +23,32 @@ import Data.Maybe (catMaybes)
 import Text.Regex
 import Text.Read (readMaybe)
 
-parseIndices :: String -> [(Col, Row)]
-parseIndices = catMaybes . map rowColToInt . catMaybes . map obtainRowCol . obtainIndices
+{-| 'parseReferences' obtains all the indices from the references of an input @String@. -}
+parseReferences :: String -> [(Col, Row)]
+parseReferences = catMaybes . map rowColToInt . catMaybes . map obtainRowCol . matchReferences
 
-indexRegex :: Regex
-indexRegex = mkRegex "[A-Z]+[0-9]+[0-9]*"
+{-| The 'referencesRegex' value defines a regex to match references. -}
+referencesRegex :: Regex
+referencesRegex = mkRegex "[A-Z]+[0-9]+[0-9]*"
 
+{-| The 'columnRegex' value defines a regex to match the column in a
+    reference. -}
 columnRegex :: Regex
 columnRegex = mkRegex "[A-Z]+"
 
+{-| The 'rowRegex' value defines a regex to match the row in a
+    reference. -}
 rowRegex :: Regex
 rowRegex = mkRegex "[0-9]+[0-9]*"
 
-obtainIndices :: String -> [String]
-obtainIndices = maybe [] f . matchRegexAll indexRegex
-    where f (_, x, xs, _) = x : obtainIndices xs
+{-| 'matchReferences' obtains all the matching references in the input. -}
+matchReferences :: String -> [String]
+matchReferences = maybe [] f . matchRegexAll referencesRegex
+    where f (_, x, xs, _) = x : matchReferences xs
 
+{-| 'obtainRowCol' obtains the row and the column from an input
+    reference. It returns @Nothing@ if it can not match the row or the
+    column. -}
 obtainRowCol :: String -> Maybe (String, String)
 obtainRowCol xs = do
   row <- matchRegexAll rowRegex xs
@@ -31,20 +57,29 @@ obtainRowCol xs = do
   where
     snd (_, x, _, _) = x
 
+{-| 'rowColToInt' takes a row and a column and returns an index if
+    succeeds.
+-}
 rowColToInt :: (String, String) -> Maybe (Row, Col)
 rowColToInt (r, c) = do
   row <- rowToInt r
   col <- colToInt c
   return (row, col)
 
+{-| 'rowToInt' takes a @String@ and returns a row index value if succeeds. -}
 rowToInt :: String -> Maybe Int
 rowToInt = readMaybe
 
+{-| 'colToInt' takes a String and returns a column index value if
+    succeeds. -}
 colToInt :: String -> Maybe Int -- TODO now it does not work with AA AAA...
 colToInt (x:xs) = Just $ ord x - 65
 
+
+{-| 'intToRow' takes an index row value and returns a row reference. -}
 intToRow :: Int -> String
 intToRow = show
 
+{-| 'intToCol' takes an index column and returns a column reference. -}
 intToCol :: Int -> String       -- TODO fix for greater than 27
 intToCol c = chr (c + 65) : []
