@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Main where
 
 import Data.Text (Text)
@@ -11,7 +10,7 @@ import qualified Network.WebSockets as WS
 
 import Data.Cell.Lib
 import Data.Cell
-import EvalLib
+import Lib.Eval
 
 type ServerState = SpreadSheet Cell
 
@@ -44,7 +43,10 @@ evalUpdateAndSend conn state cell =
     Nothing -> return ()
     Just  x -> do
       s   <- readMVar state
-      res <- parseAndEval x s
+      let (Right y) = solveDependencies x s
+      putStrLn $ "[SOLVED_DEPENDENCIES]: " <> y
+      res <- evalCell y
+      putStrLn $ "[EVAL_RESULT]: " <> (show res)
       let cell' = cell { evalResult = res }
       modifyMVar_ state $ modifyServerState cell'
       WS.sendTextData conn . encode $ cell'
