@@ -11,46 +11,59 @@ import qualified Network.WebSockets as WS
 import Data.Cell.Lib
 import Data.Cell
 import Lib.Eval
+import Lib.Dependency (Dependencies, addDependency, getDependencies, addDependencies')
+import Lib.Indexing (parseReferences)
+import qualified Lib.Dependency as Dep
 
-type ServerState = SpreadSheet Cell
-
-nCols :: Int
-nCols = length ['A'..'Z']
-
-nRows :: Int
-nRows = 20
+type ServerState = (SpreadSheet Cell, Dependencies)
 
 newServerState :: ServerState
-newServerState = createSpreadSheet emptyCell nCols 20
+newServerState = (empty, Dep.empty)
 
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do
   putStrLn "Connection started!"
   conn <- WS.acceptRequest pending
   forever $ do
-    msg  <- WS.receiveData conn
-    -- putStrLn $ "[RECEIVED]: " <> (show msg)
+    msg <- WS.receiveData conn
     case (eitherDecode msg) :: Either String Cell of
-      Left  x    -> putStrLn $ "[ERROR]: " <> x
+      Left  x    -> error $ "Error " <> x
       Right cell -> evalUpdateAndSend conn state cell
 
-modifyServerState :: Monad m => Cell -> SpreadSheet Cell -> m (SpreadSheet Cell)
-modifyServerState cell s = return $ updateCell cell s
-
-evalUpdateAndSend :: WS.Connection -> MVar (SpreadSheet Cell) -> Cell -> IO ()
+evalUpdateAndSend :: WS.Connection -> MVar ServerState -> Cell -> IO ()
 evalUpdateAndSend conn state cell = do
-  putStrLn $ "[RECEIVED]: \t\t" <> show cell
   case content cell of
     Nothing -> return ()
     Just  x -> do
       s   <- readMVar state
-      let (Right y) = solveDependencies x s
-      putStrLn $ "[SOLVED_DEPENDENCIES]: \t" <> y
-      res <- evalCell y
-      putStrLn $ "[EVAL_RESULT]: \t" <> (show res)
+      res <- solveDepAndEval x s
       let cell' = cell { evalResult = res }
-      modifyMVar_ state $ modifyServerState cell'
-      WS.sendTextData conn . encode $ cell'
+          ds    = getDependencies (getIndex cell) (snd s)
+      sendResult conn cell'
+      putStrLn $ "Cell: " <> (show cell')
+      putStrLn $ "Deps: " <> (show $ snd s) <> "\n"
+      modifyMVar_ state $ updateCell cell'
+      modifyMVar_ state $ updateDeps (getIndex cell') (parseReferences x)
+      evalDeps conn state (getIndex cell')
+
+evalDeps :: WS.Connection -> MVar ServerState -> Index -> IO ()
+evalDeps conn state i = do
+  s <- readMVar state
+  let cs = fmap (flip getCell . fst $ s) (getDependencies i $ snd s)
+  mapM_ (evalUpdateAndSend conn state) cs
+
+sendResult ::  WS.Connection -> Cell -> IO ()
+sendResult conn = WS.sendTextData conn . encode
+
+solveDepAndEval :: String -> ServerState -> IO (Either Error String)
+solveDepAndEval input (state, _) = evalCell res
+  where (Right res) = solveDependencies input state -- unsafe
+
+updateDeps :: Monad m => Index -> [Index] -> ServerState -> m ServerState
+updateDeps to froms (ss, ds) = return (ss, addDependencies' to froms ds)
+
+updateCell :: Monad m => Cell -> ServerState -> m ServerState
+updateCell cell (ss, ds) = return (addCell cell ss, ds)
 
 main :: IO ()
 main = do

@@ -23,9 +23,7 @@ solveDependencies xs state =
   case parseReferences xs of
     [] -> Right xs
     indices -> Right $ foldr applyValues xs . rights .
-               fmap cellToIndexAndVal . catMaybes .
-               fmap (getCell' state) $ indices
-
+               fmap (cellToIndexAndVal . flip getCell state) $ indices
 
 applyValues :: (String, String) -> String -> String
 applyValues (from, to) = replace from to

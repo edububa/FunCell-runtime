@@ -24,7 +24,7 @@ import Text.Regex
 import Text.Read (readMaybe)
 
 {-| 'parseReferences' obtains all the indices from the references of an input @String@. -}
-parseReferences :: String -> [(Col, Row)]
+parseReferences :: String -> [Index]
 parseReferences = catMaybes . map rowColToInt . catMaybes . map obtainRowCol . matchReferences
 
 {-| The 'referencesRegex' value defines a regex to match references. -}
@@ -60,19 +60,19 @@ obtainRowCol xs = do
 {-| 'rowColToInt' takes a row and a column and returns an index if
     succeeds.
 -}
-rowColToInt :: (String, String) -> Maybe (Row, Col)
+rowColToInt :: (String, String) -> Maybe Index
 rowColToInt (r, c) = do
   row <- rowToInt r
   col <- colToInt c
   return (row, col)
 
 {-| 'rowToInt' takes a @String@ and returns a row index value if succeeds. -}
-rowToInt :: String -> Maybe Int
+rowToInt :: String -> Maybe Row
 rowToInt = readMaybe
 
 {-| 'colToInt' takes a String and returns a column index value if
     succeeds. -}
-colToInt :: String -> Maybe Int -- TODO now it does not work with AA AAA...
+colToInt :: String -> Maybe Col -- TODO now it does not work with AA AAA...
 colToInt (x:xs) = Just $ ord x - 65
 
 

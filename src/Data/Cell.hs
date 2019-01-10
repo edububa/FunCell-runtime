@@ -7,6 +7,7 @@ module Data.Cell
     Row
   , Col
   , SpreadSheet
+  , Index
     -- * Data type
   , Cell(..)
   ) where
@@ -21,7 +22,8 @@ import Data.Map
 
 type Row = Int
 type Col = Int
-type SpreadSheet a = Map (Row, Col) a
+type Index = (Row, Col)
+type SpreadSheet a = Map Index a
 
 data Cell = Cell { row :: Row
                  , col :: Col
