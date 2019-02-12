@@ -22,6 +22,7 @@ import Data.Char (ord, chr)
 import Data.Maybe (catMaybes)
 import Text.Regex
 import Text.Read (readMaybe)
+import GHC.Natural (intToNatural, naturalToInt)
 
 {-| 'parseReferences' obtains all the indices from the references of an input @String@. -}
 parseReferences :: String -> [Index]
@@ -73,13 +74,13 @@ rowToInt = readMaybe
 {-| 'colToInt' takes a String and returns a column index value if
     succeeds. -}
 colToInt :: String -> Maybe Col -- TODO now it does not work with AA AAA...
-colToInt (x:xs) = Just $ ord x - 65
+colToInt (x:xs) = Just $ intToNatural $ ord x - 65 -- unsafe
 
 
 {-| 'intToRow' takes an index row value and returns a row reference. -}
-intToRow :: Int -> String
+intToRow :: Row -> String
 intToRow = show
 
 {-| 'intToCol' takes an index column and returns a column reference. -}
-intToCol :: Int -> String       -- TODO fix for greater than 27
-intToCol c = chr (c + 65) : []
+intToCol :: Col -> String       -- TODO fix for greater than 27
+intToCol c = chr (naturalToInt $ c + (65)) : []

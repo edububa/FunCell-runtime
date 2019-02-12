@@ -3,6 +3,7 @@ module Main where
 import Data.Text (Text)
 import Data.Aeson (encode, eitherDecode)
 import Data.Maybe (isJust)
+import Data.SpreadSheet (SpreadSheet)
 import Control.Concurrent (MVar, newMVar, modifyMVar_, modifyMVar, readMVar)
 import Control.Monad (forever)
 import Control.Monad.IO.Class (liftIO)

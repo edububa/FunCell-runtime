@@ -3,6 +3,7 @@ module Lib.Eval where
 import Data.Either (partitionEithers, rights)
 import Data.Either.Combinators (mapLeft)
 import Data.Maybe (catMaybes)
+import Data.SpreadSheet (SpreadSheet)
 import Data.String.Utils (replace)
 import Language.Haskell.Interpreter as I
 import Text.ParserCombinators.ReadP
@@ -15,7 +16,7 @@ type Error = String
 
 evalCell ""    = return $ Right ""
 evalCell input = do
-  res <- I.runInterpreter $ do { setImports ["Prelude"]; eval input}
+  res <- I.runInterpreter $ do { setImports ["Prelude", "Data.SpreadSheet.Date"]; eval input}
   return $ mapLeft (const "Type error") res
 
 solveDependencies :: String -> SpreadSheet Cell -> Either Error String

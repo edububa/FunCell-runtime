@@ -6,7 +6,6 @@ module Data.Cell
   ( -- * Type synonyms
     Row
   , Col
-  , SpreadSheet
   , Index
     -- * Data type
   , Cell(..)
@@ -15,15 +14,15 @@ module Data.Cell
 import Data.Aeson
 import Data.Text
 import Data.Char (ord)
-import GHC.Generics
 import Data.Map
+import GHC.Generics
+import Numeric.Natural
 
 -- Lib data types
 
-type Row = Int
-type Col = Int
+type Row = Natural
+type Col = Natural
 type Index = (Row, Col)
-type SpreadSheet a = Map Index a
 
 data Cell = Cell { row :: Row
                  , col :: Col

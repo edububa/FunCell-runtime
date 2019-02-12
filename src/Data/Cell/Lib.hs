@@ -2,20 +2,21 @@
     @SpreadSheet@ -}
 module Data.Cell.Lib where
 
-import qualified Data.Map as Map
+import Data.SpreadSheet (SpreadSheet)
+import qualified Data.SpreadSheet as SpreadSheet
 import Data.Cell
 
 empty :: SpreadSheet Cell
-empty = Map.empty
+empty = SpreadSheet.empty
 
 emptyCell :: Index -> Cell
 emptyCell (r, c) = Cell r c Nothing (Right "")
 
 getCell :: Index -> SpreadSheet Cell -> Cell
-getCell i = maybe (emptyCell i) id . Map.lookup i
+getCell i = maybe (emptyCell i) id . SpreadSheet.get i
 
 addCell :: Cell -> SpreadSheet Cell -> SpreadSheet Cell
-addCell c = Map.insert (getIndex c) c
+addCell c = SpreadSheet.put (getIndex c) (const c)
 
 getIndex :: Cell -> Index
 getIndex = (,) <$> row <*> col
