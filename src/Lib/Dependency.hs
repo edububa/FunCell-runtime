@@ -6,6 +6,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Cell (Index)
 import Data.Set as Set (Set)
+import Data.Tree as Tree
 import qualified Data.Set as Set
 
 type Dependencies = Map Index (Set Index)
@@ -31,3 +32,15 @@ addDependencies from tos ds = Map.insert from set ds
 addDependencies' :: Foldable f => Index -> f Index -> Dependencies -> Dependencies
 addDependencies' to froms ds = foldr f ds froms
   where f x acc = addDependency x to acc
+
+-- TODO
+analyzeDependencies :: Index -> Dependencies -> Maybe String
+analyzeDependencies = undefined
+
+generateTreeDependencies :: Index -> Dependencies -> Set Index -> Either String (Tree Index)
+generateTreeDependencies i ds is
+  | Set.member i is = Left $ "Error circular dependency found in " <> (show i)
+  | otherwise       = undefined
+
+introduceDependency :: Index -> Dependencies -> Tree Index -> Tree Index
+introduceDependency i ds t = undefined

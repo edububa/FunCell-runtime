@@ -2,15 +2,18 @@ module Main where
 
 import Data.Text (Text)
 import Data.Aeson (encode, eitherDecode)
+import Data.Either (isRight, fromRight)
 import Data.Maybe (isJust)
 import Data.SpreadSheet (SpreadSheet)
 import Control.Concurrent (MVar, newMVar, modifyMVar_, modifyMVar, readMVar)
-import Control.Monad (forever)
+import Control.Monad (forever, when)
 import Control.Monad.IO.Class (liftIO)
 import qualified Network.WebSockets as WS
+import System.Timeout
 
 import Data.Cell.Lib
 import Data.Cell
+import Data.ExternalModule
 import Lib.Eval
 import Lib.Dependency (Dependencies, addDependency, getDependencies, addDependencies')
 import Lib.Indexing (parseReferences)
@@ -27,9 +30,10 @@ application state pending = do
   conn <- WS.acceptRequest pending
   forever $ do
     msg <- WS.receiveData conn
-    case (eitherDecode msg) :: Either String Cell of
-      Left  x    -> error $ "Error " <> x
-      Right cell -> evalUpdateAndSend conn state cell
+    let cell   = (eitherDecode msg) :: Either String Cell
+        extMod = (eitherDecode msg) :: Either String ExternalModule
+    mapM_ (saveAndLoadExternalModule) extMod
+    mapM_ (evalUpdateAndSend conn state) cell
 
 evalUpdateAndSend :: WS.Connection -> MVar ServerState -> Cell -> IO ()
 evalUpdateAndSend conn state cell = do
@@ -57,7 +61,9 @@ sendResult ::  WS.Connection -> Cell -> IO ()
 sendResult conn = WS.sendTextData conn . encode
 
 solveDepAndEval :: String -> ServerState -> IO (Either Error String)
-solveDepAndEval input (state, _) = evalCell res
+solveDepAndEval input (state, _) = do
+  evalResult <- timeout (10^6) $ evalCell res
+  return $ maybe (Left "Too long computation") id evalResult
   where (Right res) = solveDependencies input state -- unsafe
 
 updateDeps :: Monad m => Index -> [Index] -> ServerState -> m ServerState
