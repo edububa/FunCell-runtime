@@ -16,14 +16,21 @@ import Data.ExternalModule
 
 type Error = String
 
+context :: InterpreterT IO ()
+context = do
+  I.loadModules ["ExternalModule.hs"]
+  setImports ["Prelude", "Data.SpreadSheet.Date", "ExternalModule"]
+
+evalCell :: [Char] -> IO (Either [Char] [Char])
 evalCell ""    = return $ Right ""
 evalCell input = do
-  res <- I.runInterpreter $ do
-    I.loadModules ["ExternalModule.hs"]
-    setImports ["Prelude", "Data.SpreadSheet.Date", "ExternalModule"]
-    eval input
-  print res
-  return $ mapLeft (const "Type error") res
+  typeRes <- I.runInterpreter $ do { context; typeChecks input }
+  evalRes <- I.runInterpreter $ do { context; eval input }
+  return $ case (typeRes, evalRes) of
+    (Right False, _)      -> Left "Won't compile"
+    (Right True, Left _)  -> Left "Not showable"
+    (Right True, Right x) -> Right x
+    _                     -> Left "Unknown error"
 
 solveDependencies :: String -> SpreadSheet Cell -> Either Error String
 solveDependencies xs state =
@@ -44,12 +51,13 @@ cellToIndexAndVal cell = do
   -- (intToCol (col cell) <> intToRow (row cell),
   -- evalResult cell)
 
-saveAndLoadExternalModule :: ExternalModule -> IO ()
+saveAndLoadExternalModule :: ExternalModule -> IO (Maybe [Char])
 saveAndLoadExternalModule (ExternalModule input) = do
   saveExternalModuleFile input
   res <- runInterpreter $ I.loadModules ["ExternalModule.hs"]
-  print res
-  return ()
+  return $ case res of
+    Left  _ -> Just "Won't compile"
+    Right _ -> Nothing
 
 saveExternalModuleFile :: String -> IO ()
 saveExternalModuleFile input = do

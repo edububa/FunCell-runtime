@@ -1,7 +1,7 @@
 module Main where
 
 import Data.Text (Text)
-import Data.Aeson (encode, eitherDecode)
+import Data.Aeson (ToJSON, encode, eitherDecode)
 import Data.Either (isRight, fromRight)
 import Data.Maybe (isJust)
 import Data.SpreadSheet (SpreadSheet)
@@ -57,13 +57,13 @@ evalDeps conn state i = do
   let cs = fmap (flip getCell . fst $ s) (getDependencies i $ snd s)
   mapM_ (evalUpdateAndSend conn state) cs
 
-sendResult ::  WS.Connection -> Cell -> IO ()
+sendResult :: ToJSON a => WS.Connection -> a -> IO ()
 sendResult conn = WS.sendTextData conn . encode
 
 solveDepAndEval :: String -> ServerState -> IO (Either Error String)
 solveDepAndEval input (state, _) = do
-  evalResult <- timeout (10^6) $ evalCell res
-  return $ maybe (Left "Too long computation") id evalResult
+  evalResult <- evalCell res
+  return evalResult
   where (Right res) = solveDependencies input state -- unsafe
 
 updateDeps :: Monad m => Index -> [Index] -> ServerState -> m ServerState
@@ -75,6 +75,7 @@ updateCell cell (ss, ds) = return (addCell cell ss, ds)
 main :: IO ()
 main = do
   state <- newMVar newServerState
+  writeFile "ExternalModule" ""
   putStr "Starting Server... "
   putStrLn "Done!"
   WS.runServer "127.0.0.1" 9160 $ application state
