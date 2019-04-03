@@ -12,9 +12,6 @@ module Data.Cell
   ) where
 
 import Data.Aeson
-import Data.Text
-import Data.Char (ord)
-import Data.Map
 import GHC.Generics
 import Numeric.Natural
 
@@ -22,12 +19,17 @@ import Numeric.Natural
 
 type Row = Natural
 type Col = Natural
+type Error = String
 type Index = (Row, Col)
 
 data Cell = Cell { row :: Row
                  , col :: Col
                  , content :: Maybe String
-                 , evalResult :: Either String String } deriving (Show, Generic)
+                 , evalResult :: Either Error String } deriving (Generic)
+
+instance Show Cell where
+  show (Cell r c cont res) = "(" <> show r <> ", " <> show c <> "): " <>
+                             show cont <> "\n\t" <> show res
 
 instance FromJSON Cell where
   parseJSON = withObject "cell" $ \o -> do

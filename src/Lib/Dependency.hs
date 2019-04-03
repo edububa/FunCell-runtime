@@ -34,13 +34,12 @@ addDependencies' to froms ds = foldr f ds froms
   where f x acc = addDependency x to acc
 
 -- TODO
-analyzeDependencies :: Index -> Dependencies -> Maybe String
-analyzeDependencies = undefined
+analyzeCircularDependencies :: [Index] -> Dependencies -> Maybe [Index]
+analyzeCircularDependencies [] _  = Nothing
+analyzeCircularDependencies is ds = foldr (\x acc -> analyzeIndexDependencies x ds <> acc) Nothing is
 
-generateTreeDependencies :: Index -> Dependencies -> Set Index -> Either String (Tree Index)
-generateTreeDependencies i ds is
-  | Set.member i is = Left $ "Error circular dependency found in " <> (show i)
-  | otherwise       = undefined
-
-introduceDependency :: Index -> Dependencies -> Tree Index -> Tree Index
-introduceDependency i ds t = undefined
+analyzeIndexDependencies :: Index -> Dependencies -> Maybe [Index]
+analyzeIndexDependencies i ds | deps == []  = Nothing
+                              | elem i deps = Just [i]
+                              | otherwise   = analyzeCircularDependencies deps ds
+  where deps = getDependencies i ds

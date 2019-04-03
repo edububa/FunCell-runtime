@@ -1,13 +1,14 @@
 module Main where
 
 import Data.Text (Text)
-import Data.Aeson (ToJSON, encode, eitherDecode)
+import Data.Aeson (ToJSON, encode, eitherDecode, decode)
 import Data.Either (isRight, fromRight)
-import Data.Maybe (isJust)
+import Data.Maybe (isJust, isNothing)
 import Data.SpreadSheet (SpreadSheet)
 import Control.Concurrent (MVar, newMVar, modifyMVar_, modifyMVar, readMVar)
 import Control.Monad (forever, when)
 import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.Except
 import qualified Network.WebSockets as WS
 import System.Timeout
 
@@ -15,7 +16,7 @@ import Data.Cell.Lib
 import Data.Cell
 import Data.ExternalModule
 import Lib.Eval
-import Lib.Dependency (Dependencies, addDependency, getDependencies, addDependencies')
+import Lib.Dependency (analyzeCircularDependencies, Dependencies, addDependencies', getDependencies)
 import Lib.Indexing (parseReferences)
 import qualified Lib.Dependency as Dep
 
@@ -30,47 +31,56 @@ application state pending = do
   conn <- WS.acceptRequest pending
   forever $ do
     msg <- WS.receiveData conn
-    let cell   = (eitherDecode msg) :: Either String Cell
-        extMod = (eitherDecode msg) :: Either String ExternalModule
-    mapM_ (saveAndLoadExternalModule) extMod
-    mapM_ (evalUpdateAndSend conn state) cell
+    case (decode msg) :: Maybe Cell of
+      Just cell -> runExceptT $ runCell state cell conn
+      Nothing -> return $ Left ""
+    case (decode msg) :: Maybe ExternalModule of
+      Just extMod -> runExceptT $ saveAndLoadExternalModule extMod -- TODO update used cells
+      Nothing -> return $ Right ()
 
-evalUpdateAndSend :: WS.Connection -> MVar ServerState -> Cell -> IO ()
-evalUpdateAndSend conn state cell = do
+runCell :: MVar ServerState -> Cell -> WS.Connection -> ExceptT Error IO Cell
+runCell state cell conn = do
+  deps  <- analyzeDependencies state cell -- TODO not working correctly
+  cell' <- eval state cell
+  liftIO $ putStrLn $ show deps
+  liftIO $ sendResult conn cell'
+  liftIO $ updateState cell deps state
+  return cell'
+
+analyzeDependencies :: MVar ServerState -> Cell -> ExceptT Error IO (Index, [Index])
+analyzeDependencies state cell = ExceptT $ do
+  (ss, deps) <- liftIO $ readMVar state
+  let i    = getIndex cell
+      refs = maybe [] parseReferences $ content cell
+  liftIO $ putStrLn $ show refs
+  case analyzeCircularDependencies (i:refs) deps of
+    Nothing -> return $ Right (i, refs)
+    Just x  -> return $ Left (show x)
+
+eval :: MVar ServerState -> Cell -> ExceptT Error IO Cell
+eval state cell = do
   case content cell of
-    Nothing -> return ()
-    Just  x -> do
-      s   <- readMVar state
-      res <- solveDepAndEval x s
-      let cell' = cell { evalResult = res }
-          ds    = getDependencies (getIndex cell) (snd s)
-      sendResult conn cell'
-      putStrLn $ "Cell: " <> (show cell')
-      putStrLn $ "Deps: " <> (show $ snd s) <> "\n"
-      modifyMVar_ state $ updateCell cell'
-      modifyMVar_ state $ updateDeps (getIndex cell') (parseReferences x)
-      evalDeps conn state (getIndex cell')
+    Nothing -> return cell
+    Just c  -> do
+      s   <- liftIO $ readMVar state
+      c'  <- except $ solveDependencies (fst s) c
+      res <- liftIO . runExceptT . evalCell $ c'
+      return cell { evalResult = res }
 
-evalDeps :: WS.Connection -> MVar ServerState -> Index -> IO ()
-evalDeps conn state i = do
-  s <- readMVar state
-  let cs = fmap (flip getCell . fst $ s) (getDependencies i $ snd s)
-  mapM_ (evalUpdateAndSend conn state) cs
-
-sendResult :: ToJSON a => WS.Connection -> a -> IO ()
-sendResult conn = WS.sendTextData conn . encode
-
-solveDepAndEval :: String -> ServerState -> IO (Either Error String)
-solveDepAndEval input (state, _) = do
-  evalResult <- evalCell res
-  return evalResult
-  where (Right res) = solveDependencies input state -- unsafe
+updateState :: Cell -> (Index, [Index]) -> MVar ServerState -> IO ()
+updateState cell (i, is) state = do
+  (ss, ds) <- readMVar state
+  modifyMVar_ state $ updateSpreadSheet cell
+  modifyMVar_ state $ updateDeps i is
 
 updateDeps :: Monad m => Index -> [Index] -> ServerState -> m ServerState
 updateDeps to froms (ss, ds) = return (ss, addDependencies' to froms ds)
 
-updateCell :: Monad m => Cell -> ServerState -> m ServerState
-updateCell cell (ss, ds) = return (addCell cell ss, ds)
+updateSpreadSheet :: Monad m => Cell -> ServerState -> m ServerState
+updateSpreadSheet cell (ss, ds) = return (addCell cell ss, ds)
+
+sendResult :: ToJSON a => WS.Connection -> a -> IO ()
+sendResult conn = WS.sendTextData conn . encode
 
 main :: IO ()
 main = do
