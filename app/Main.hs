@@ -3,8 +3,9 @@ module Main where
 import Data.Text (Text)
 import Data.Aeson (ToJSON, encode, eitherDecode, decode)
 import Data.Either (isRight, fromRight)
+import Data.List (delete)
 import Data.Maybe (isJust, isNothing)
-import Data.SpreadSheet (SpreadSheet)
+import Data.SpreadSheet (SpreadSheet, toListValues)
 import Control.Concurrent (MVar, newMVar, modifyMVar_, modifyMVar, readMVar)
 import Control.Monad (forever, when)
 import Control.Monad.IO.Class (liftIO)
@@ -16,7 +17,7 @@ import Data.Cell.Lib
 import Data.Cell
 import Data.ExternalModule
 import Lib.Eval
-import Lib.Dependency (analyzeCircularDependencies, Dependencies, addDependencies', getDependencies)
+import Lib.Dependency hiding (empty)
 import Lib.Indexing (parseReferences)
 import qualified Lib.Dependency as Dep
 
@@ -32,49 +33,62 @@ application state pending = do
   forever $ do
     msg <- WS.receiveData conn
     case (decode msg) :: Maybe Cell of
-      Just cell -> runExceptT $ runCell state cell conn
-      Nothing -> return $ Left ""
+      Nothing   -> return ()
+      Just cell -> runCell state conn cell
     case (decode msg) :: Maybe ExternalModule of
-      Just extMod -> runExceptT $ saveAndLoadExternalModule extMod -- TODO update used cells
       Nothing -> return $ Right ()
+      Just extMod -> runExceptT $ runExternalModule extMod state conn
+    (ss, ds) <- readMVar state
+    print ds
 
-runCell :: MVar ServerState -> Cell -> WS.Connection -> ExceptT Error IO Cell
-runCell state cell conn = do
-  deps  <- analyzeDependencies state cell -- TODO not working correctly
-  cell' <- eval state cell
-  liftIO $ putStrLn $ show deps
-  liftIO $ sendResult conn cell'
-  liftIO $ updateState cell deps state
-  return cell'
+runCell :: MVar ServerState -> WS.Connection -> Cell -> IO ()
+runCell state conn cell = do
+  res <- runExceptT $ runEval state cell
+  let cell' = cell { evalResult = res }
+  sendResult conn cell'
+  updateState cell' state conn
+
+runEval :: MVar ServerState -> Cell -> ExceptT Error IO String
+runEval state cell = do
+  deps <- analyzeDependencies state cell
+  res  <- eval state cell
+  return res
 
 analyzeDependencies :: MVar ServerState -> Cell -> ExceptT Error IO (Index, [Index])
 analyzeDependencies state cell = ExceptT $ do
   (ss, deps) <- liftIO $ readMVar state
   let i    = getIndex cell
       refs = maybe [] parseReferences $ content cell
-  liftIO $ putStrLn $ show refs
-  case analyzeCircularDependencies (i:refs) deps of
-    Nothing -> return $ Right (i, refs)
-    Just x  -> return $ Left (show x)
+  if circularDependencies $ addDependencies i refs deps
+     then pure $ Left  ("Circular dependencies found")
+     else pure $ Right (i, refs)
 
-eval :: MVar ServerState -> Cell -> ExceptT Error IO Cell
+eval :: MVar ServerState -> Cell -> ExceptT Error IO String
 eval state cell = do
   case content cell of
-    Nothing -> return cell
+    Nothing -> return ""
     Just c  -> do
       s   <- liftIO $ readMVar state
       c'  <- except $ solveDependencies (fst s) c
       res <- liftIO . runExceptT . evalCell $ c'
-      return cell { evalResult = res }
+      except res
 
-updateState :: Cell -> (Index, [Index]) -> MVar ServerState -> IO ()
-updateState cell (i, is) state = do
+runExternalModule :: ExternalModule -> MVar ServerState -> WS.Connection -> ExceptT Error IO ()
+runExternalModule extMod state conn = do
+  saveAndLoadExternalModule extMod
+  (ss, _) <- liftIO $ readMVar state
+  liftIO $ mapM_ (runCell state conn) (toListValues ss)
+
+updateState :: Cell -> MVar ServerState -> WS.Connection -> IO ()
+updateState cell state conn = do
   (ss, ds) <- readMVar state
+  deps <- runExceptT $ analyzeDependencies state cell
   modifyMVar_ state $ updateSpreadSheet cell
-  modifyMVar_ state $ updateDeps i is
+  mapM_ (modifyMVar_ state . updateDeps) deps
 
-updateDeps :: Monad m => Index -> [Index] -> ServerState -> m ServerState
-updateDeps to froms (ss, ds) = return (ss, addDependencies' to froms ds)
+updateDeps :: Monad m => (Index, [Index]) -> ServerState -> m ServerState
+updateDeps (from, tos) (ss, ds) = return (ss, ds')
+    where ds' = addDependencies from tos $ resetDependency from ds
 
 updateSpreadSheet :: Monad m => Cell -> ServerState -> m ServerState
 updateSpreadSheet cell (ss, ds) = return (addCell cell ss, ds)
@@ -87,5 +101,6 @@ main = do
   state <- newMVar newServerState
   writeFile "ExternalModule" ""
   putStr "Starting Server... "
+  saveExternalModuleFile ""
   putStrLn "Done!"
   WS.runServer "127.0.0.1" 9160 $ application state

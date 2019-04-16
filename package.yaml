@@ -33,6 +33,7 @@ dependencies:
 - regex-compat
 - MissingH
 - transformers
+- algebraic-graphs
 
 library:
   source-dirs: src

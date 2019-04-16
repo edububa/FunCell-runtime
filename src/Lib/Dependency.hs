@@ -2,44 +2,52 @@
     dependencies inside a @SpreadSheet@. -}
 module Lib.Dependency where
 
-import Data.Map (Map)
-import qualified Data.Map as Map
-import Data.Cell (Index)
-import Data.Set as Set (Set)
-import Data.Tree as Tree
-import qualified Data.Set as Set
+import Algebra.Graph.AdjacencyMap
+import Algebra.Graph.AdjacencyMap.Algorithm
+import Data.Cell
+import Data.Set (toList)
 
-type Dependencies = Map Index (Set Index)
+{-| 'Dependencies' will be stored in a directed graph -}
+type Dependencies = AdjacencyMap Index
 
+{-| The 'empty' value of an empty dependency graph. |-}
 empty :: Dependencies
-empty = Map.empty
+empty = Algebra.Graph.AdjacencyMap.empty
 
+{-| 'addDependency' introduces a new dependency to the graph. -}
 addDependency :: Index -> Index -> Dependencies -> Dependencies
-addDependency from to ds = Map.insert from set ds
-  where set = maybe (Set.singleton to) (Set.insert to) (Map.lookup from ds)
+addDependency from to = overlay $ edge from to
 
-deleteDependency :: Index -> Index -> Dependencies -> Dependencies
-deleteDependency from to ds = Map.insert from set ds
-  where set = maybe Set.empty (Set.delete to) (Map.lookup from ds)
+{-| 'removeDependency' deletes the edge representing a dependency in the
+  graph. -}
+removeDependency :: Index -> Index -> Dependencies -> Dependencies
+removeDependency = removeEdge
 
+{-| 'addDependencies' introduces the dependencies between the first
+  index and a list of indices -}
+addDependencies :: Index -> [Index] -> Dependencies -> Dependencies
+addDependencies from tos ds = foldr (addDependency from) ds tos
+
+{-| 'getOrder' -}
+getOrder :: Dependencies -> Maybe [Index]
+getOrder = topSort
+
+{-| 'resetDependency' deletes the vertex of a given index in the graph,
+  this way resets all its dependencies. -}
+resetDependency :: Index -> Dependencies -> Dependencies
+resetDependency = removeVertex
+
+{-| 'getDependencies' returns a list with the dependencies reachable
+  from a given index. -}
 getDependencies :: Index -> Dependencies -> [Index]
-getDependencies from = maybe [] Set.elems . (Map.lookup from)
+getDependencies = reachable
 
-addDependencies :: Index -> Set Index -> Dependencies -> Dependencies
-addDependencies from tos ds = Map.insert from set ds
-  where set = maybe tos (Set.union tos) (Map.lookup from ds)
+{-| 'getDependients' returns a list with the dependent indices of a
+  given index. -}
+getDependients :: Index -> Dependencies -> [Index]
+getDependients i ds = undefined -- TODO
 
-addDependencies' :: Foldable f => Index -> f Index -> Dependencies -> Dependencies
-addDependencies' to froms ds = foldr f ds froms
-  where f x acc = addDependency x to acc
-
--- TODO
-analyzeCircularDependencies :: [Index] -> Dependencies -> Maybe [Index]
-analyzeCircularDependencies [] _  = Nothing
-analyzeCircularDependencies is ds = foldr (\x acc -> analyzeIndexDependencies x ds <> acc) Nothing is
-
-analyzeIndexDependencies :: Index -> Dependencies -> Maybe [Index]
-analyzeIndexDependencies i ds | deps == []  = Nothing
-                              | elem i deps = Just [i]
-                              | otherwise   = analyzeCircularDependencies deps ds
-  where deps = getDependencies i ds
+{-| 'circularDependencies' is a predicate that checks if a given graph
+  has circular dependencies -}
+circularDependencies :: Dependencies -> Bool
+circularDependencies = not . isAcyclic
