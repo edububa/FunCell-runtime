@@ -16,13 +16,14 @@ module Lib.Indexing
   , intToCol
   ) where
 
-import Data.Cell
-
+-- external imports
 import Data.Char (ord, chr)
 import Data.Maybe (catMaybes)
 import Text.Regex
 import Text.Read (readMaybe)
 import GHC.Natural (intToNatural, naturalToInt)
+-- internal imports
+import Data.Cell
 
 {-| 'parseReferences' obtains all the indices from the references of an input @String@. -}
 parseReferences :: String -> [Index]
@@ -52,20 +53,20 @@ matchReferences = maybe [] f . matchRegexAll referencesRegex
     column. -}
 obtainRowCol :: String -> Maybe (String, String)
 obtainRowCol xs = do
-  row <- matchRegexAll rowRegex xs
-  col <- matchRegexAll columnRegex xs
-  return (snd row, snd col)
+  r <- matchRegexAll rowRegex xs
+  c <- matchRegexAll columnRegex xs
+  return (snd' r, snd' c)
   where
-    snd (_, x, _, _) = x
+    snd' (_, x, _, _) = x
 
 {-| 'rowColToInt' takes a row and a column and returns an index if
     succeeds.
 -}
 rowColToInt :: (String, String) -> Maybe Index
 rowColToInt (r, c) = do
-  row <- rowToInt r
-  col <- colToInt c
-  return (row, col)
+  r' <- rowToInt r
+  c' <- colToInt c
+  return (r', c')
 
 {-| 'rowToInt' takes a @String@ and returns a row index value if succeeds. -}
 rowToInt :: String -> Maybe Row
@@ -74,8 +75,8 @@ rowToInt = readMaybe
 {-| 'colToInt' takes a String and returns a column index value if
     succeeds. -}
 colToInt :: String -> Maybe Col -- TODO now it does not work with AA AAA...
-colToInt (x:xs) = Just $ intToNatural $ ord x - 65 -- unsafe
-
+colToInt (x:_) = Just $ intToNatural $ ord x - 65 -- unsafe
+colToInt _ = Nothing
 
 {-| 'intToRow' takes an index row value and returns a row reference. -}
 intToRow :: Row -> String

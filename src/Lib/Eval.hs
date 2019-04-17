@@ -1,21 +1,25 @@
-module Lib.Eval where
+{-| This module contains functions to handle the evaluation of the
+  content of cells. -}
+module Lib.Eval
+  ( -- * Evaluation functions
+    context
+  , evalCell
+  , solveDependencies
+  , applyValues
+  , cellToIndexAndVal
+  ) where
 
+-- external imports
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Except
-import Data.Either (partitionEithers, rights)
-import Data.Either.Combinators (mapLeft)
-import Data.Maybe (catMaybes)
+import Data.Either (rights)
 import Data.SpreadSheet (SpreadSheet)
 import Data.String.Utils (replace)
 import Language.Haskell.Interpreter as I
-import Text.ParserCombinators.ReadP
-
-import Lib.Indexing
+-- internal imports
 import Data.Cell
-import Data.Cell.Lib
-import Data.ExternalModule
-
-type Error = String
+import Lib.Indexing
+import Lib.Cell
 
 context :: InterpreterT IO ()
 context = do
@@ -54,13 +58,3 @@ cellToIndexAndVal cell = do
     Nothing -> Left $ "Error in cell " <> index
     Just x  -> Right (index, "(" <> x <> ")")
   where index = intToCol (col cell) <> intToRow (row cell)
-
-saveAndLoadExternalModule :: ExternalModule -> ExceptT Error IO ()
-saveAndLoadExternalModule (ExternalModule input) = ExceptT $ do
-  liftIO $ saveExternalModuleFile input
-  res <- liftIO $ runInterpreter $ I.loadModules ["ExternalModule.hs"]
-  return . mapLeft (const "Won't compile") $ res
-
-saveExternalModuleFile :: String -> IO ()
-saveExternalModuleFile input = do
-  writeFile "ExternalModule.hs" ("module ExternalModule where \n" <> input)

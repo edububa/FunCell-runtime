@@ -2,17 +2,12 @@
     dependencies inside a @SpreadSheet@. -}
 module Lib.Dependency where
 
+-- external imports
 import Algebra.Graph.AdjacencyMap
 import Algebra.Graph.AdjacencyMap.Algorithm
+-- internal imports
 import Data.Cell
-import Data.Set (toList)
-
-{-| 'Dependencies' will be stored in a directed graph -}
-type Dependencies = AdjacencyMap Index
-
-{-| The 'empty' value of an empty dependency graph. |-}
-empty :: Dependencies
-empty = Algebra.Graph.AdjacencyMap.empty
+import Data.Dependency
 
 {-| 'addDependency' introduces a new dependency to the graph. -}
 addDependency :: Index -> Index -> Dependencies -> Dependencies
@@ -42,10 +37,10 @@ resetDependency = removeVertex
 getDependencies :: Index -> Dependencies -> [Index]
 getDependencies = reachable
 
-{-| 'getDependients' returns a list with the dependent indices of a
+{-| 'getDependents' returns a list with the dependent indices of a
   given index. -}
-getDependients :: Index -> Dependencies -> [Index]
-getDependients i ds = undefined -- TODO
+getDependents :: Index -> Dependencies -> [Index]
+getDependents = undefined
 
 {-| 'circularDependencies' is a predicate that checks if a given graph
   has circular dependencies -}

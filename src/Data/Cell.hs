@@ -1,22 +1,23 @@
+{-| This module contains the type definitions and instances to deal with
+  Cells. -}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-| This module contains the type definitions and instances to deal with
-    the Cells. -}
 module Data.Cell
   ( -- * Type synonyms
     Row
   , Col
   , Index
+  , Error
     -- * Data type
   , Cell(..)
   ) where
 
+-- external imports
 import Data.Aeson
 import GHC.Generics
 import Numeric.Natural
 
 -- Lib data types
-
 type Row = Natural
 type Col = Natural
 type Error = String
@@ -33,10 +34,10 @@ instance Show Cell where
 
 instance FromJSON Cell where
   parseJSON = withObject "cell" $ \o -> do
-    row     <- o .: "row"
-    col     <- o .: "col"
-    content <- o .: "content"
-    return $ Cell row col content (Right "")
+    r  <- o .: "row"
+    c  <- o .: "col"
+    ct <- o .: "content"
+    return $ Cell r c ct (Right "")
 
 
 instance ToJSON Cell

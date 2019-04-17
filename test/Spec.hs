@@ -1,9 +1,9 @@
 import Test.Hspec
-import ParsingLib
+import Algebra.Graph.AdjacencyMap hiding (empty)
+import Lib.Dependency
 
 main :: IO ()
 main = hspec $ do
-  it "Parses an empty string" $ do
-    parseAndEval "" `shouldBe` (Right "")
-  it "Parses and eval \"1 + 2\"" $ do
-    parseAndEval "1 + 2" `shouldBe` (Right "3")
+         describe "Lib.Dependency.addDependency" $ do
+                 it "adds a dependency" $ do
+                   (addDependency (0,0) (0,1) $ empty) `shouldBe` (edge (0,0) (0,1))

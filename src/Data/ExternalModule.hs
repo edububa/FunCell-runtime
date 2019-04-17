@@ -1,9 +1,11 @@
+{-| This module contains the definition of the ExternalModule data type
+  and some useful instances. -}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Data.ExternalModule where
 
+-- external imports
 import Data.Aeson
-import Data.Text
 import GHC.Generics
 
 data ExternalModule = ExternalModule String deriving (Show, Generic)
