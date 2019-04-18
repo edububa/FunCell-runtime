@@ -8,6 +8,7 @@ import Algebra.Graph.AdjacencyMap.Algorithm
 -- internal imports
 import Data.Cell
 import Data.Dependency
+import Data.Set (toList)
 
 {-| 'addDependency' introduces a new dependency to the graph. -}
 addDependency :: Index -> Index -> Dependencies -> Dependencies
@@ -40,9 +41,17 @@ getDependencies = reachable
 {-| 'getDependents' returns a list with the dependent indices of a
   given index. -}
 getDependents :: Index -> Dependencies -> [Index]
-getDependents = undefined
+getDependents from = toList <$> preSet from
 
 {-| 'circularDependencies' is a predicate that checks if a given graph
   has circular dependencies -}
 circularDependencies :: Dependencies -> Bool
 circularDependencies = not . isAcyclic
+
+{-| 'updateDependency' returns an updated dependency graph, first
+  removes the edges of then Index that will be updated, after that the
+  new edges are added. -}
+updateDependency :: Index -> [Index] -> Dependencies -> Dependencies
+updateDependency from tos ds = addDependencies from tos .
+                               foldr (removeDependency from) ds .
+                               toList . postSet from $ ds

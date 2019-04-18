@@ -16,8 +16,7 @@ updateState cell state deps = do
   modifyMVar_ state $ updateDeps deps
 
 updateDeps :: Monad m => (Index, [Index]) -> ServerState -> m ServerState
-updateDeps (from, tos) (ss, ds) = return (ss, ds')
-    where ds' = addDependencies from tos $ resetDependency from ds
+updateDeps (from, tos) (ss, ds) = return (ss, updateDependency from tos ds)
 
 updateSpreadSheet :: Monad m => Cell -> ServerState -> m ServerState
 updateSpreadSheet cell (ss, ds) = return (addCell cell ss, ds)

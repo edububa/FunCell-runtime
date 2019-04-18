@@ -18,19 +18,28 @@ import Lib.Eval
 import Lib.Indexing
 import Lib.Dependency
 import Lib.ExternalModule
+import Lib.ServerState
 
 runCell :: MVar ServerState -> WS.Connection -> Cell -> IO ()
 runCell state conn cell = do
   res <- runExceptT $ runEval state cell
   let cell' = cell { evalResult = res }
   sendResult conn cell'
-  -- updateState cell' state TODO
+  modifyMVar_ state $ updateSpreadSheet cell'
+  updateDependentCells state conn cell'
 
 runEval :: MVar ServerState -> Cell -> ExceptT Error IO String
 runEval state cell = do
-  _ <- analyzeDependencies state cell
+  deps <- analyzeDependencies state cell
   res  <- eval state cell
+  liftIO $ modifyMVar_ state $ updateDeps deps
   return res
+
+updateDependentCells :: MVar ServerState -> WS.Connection -> Cell -> IO ()
+updateDependentCells state conn cell = do
+  (ss, deps) <- readMVar state
+  let refs = getDependents (getIndex cell) deps
+  mapM_ (runCell state conn . flip getCell ss) refs
 
 analyzeDependencies :: MVar ServerState -> Cell -> ExceptT Error IO (Index, [Index])
 analyzeDependencies state cell = ExceptT $ do
