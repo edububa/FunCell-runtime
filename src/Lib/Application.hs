@@ -31,8 +31,8 @@ runCell state conn cell = do
 runEval :: MVar ServerState -> Cell -> ExceptT Error IO String
 runEval state cell = do
   deps <- analyzeDependencies state cell
+  liftIO $ updateState cell state deps
   res  <- eval state cell
-  liftIO $ modifyMVar_ state $ updateDeps deps
   return res
 
 updateDependentCells :: MVar ServerState -> WS.Connection -> Cell -> IO ()
@@ -55,8 +55,11 @@ eval state cell = do
   case content cell of
     Nothing -> return ""
     Just c  -> do
-      s   <- liftIO $ readMVar state
-      c'  <- except $ solveDependencies (fst s) c
+      s <- liftIO $ readMVar state
+      let deps = getDependencies (getIndex cell) (snd s)
+      liftIO $ print deps
+      c'  <- except $ solveDependencies (fst s) deps c
+      liftIO $ print c'
       res <- liftIO . runExceptT . evalCell $ c'
       except res
 
