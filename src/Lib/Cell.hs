@@ -7,6 +7,7 @@ import Data.SpreadSheet (SpreadSheet)
 import qualified Data.SpreadSheet as SpreadSheet
 -- internal imports
 import Data.Cell
+import Lib.Indexing
 
 {-| The 'empty' value of a SpreadSheet of Cells. -}
 empty :: SpreadSheet Cell
@@ -24,10 +25,6 @@ getCell i = maybe (emptyCell i) id . SpreadSheet.get i
 {-| 'addCell' inserts a cell in a @SpreadSheet@ -}
 addCell :: Cell -> SpreadSheet Cell -> SpreadSheet Cell
 addCell c = SpreadSheet.put (getIndex c) (const c)
-
-{-| 'getIndex' returns the index of a cell -}
-getIndex :: Cell -> Index
-getIndex = (,) <$> row <*> col
 
 {-| 'clearCell' deletes the content of the cell in a given index of a
   @SpreadSheet@ -}

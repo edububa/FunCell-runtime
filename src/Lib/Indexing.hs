@@ -1,63 +1,15 @@
 {-| This module contains functions to deal with indices and references
     in spread sheets.-}
-module Lib.Indexing
-  ( -- * Parsing
-    parseReferences
-  , referencesRegex
-  , columnRegex
-  , rowRegex
-  , matchReferences
-  , obtainRowCol
-    -- * Auxiliar
-  , rowColToInt
-  , rowToInt
-  , colToInt
-  , intToRow
-  , intToCol
-  ) where
+module Lib.Indexing where
 
 -- external imports
 import Data.Char (ord, chr)
-import Data.Maybe (catMaybes)
-import Text.Regex
 import Text.Read (readMaybe)
+import Text.Regex (matchRegexAll)
 import GHC.Natural (intToNatural, naturalToInt)
 -- internal imports
 import Data.Cell
-
-{-| 'parseReferences' obtains all the indices from the references of an input @String@. -}
-parseReferences :: String -> [Index]
-parseReferences = catMaybes . map rowColToInt . catMaybes . map obtainRowCol . matchReferences
-
-{-| The 'referencesRegex' value defines a regex to match references. -}
-referencesRegex :: Regex
-referencesRegex = mkRegex "[A-Z]+[0-9]+[0-9]*"
-
-{-| The 'columnRegex' value defines a regex to match the column in a
-    reference. -}
-columnRegex :: Regex
-columnRegex = mkRegex "[A-Z]+"
-
-{-| The 'rowRegex' value defines a regex to match the row in a
-    reference. -}
-rowRegex :: Regex
-rowRegex = mkRegex "[0-9]+[0-9]*"
-
-{-| 'matchReferences' obtains all the matching references in the input. -}
-matchReferences :: String -> [String]
-matchReferences = maybe [] f . matchRegexAll referencesRegex
-    where f (_, x, xs, _) = x : matchReferences xs
-
-{-| 'obtainRowCol' obtains the row and the column from an input
-    reference. It returns @Nothing@ if it can not match the row or the
-    column. -}
-obtainRowCol :: String -> Maybe (String, String)
-obtainRowCol xs = do
-  r <- matchRegexAll rowRegex xs
-  c <- matchRegexAll columnRegex xs
-  return (snd' r, snd' c)
-  where
-    snd' (_, x, _, _) = x
+import Data.Parsing
 
 {-| 'rowColToInt' takes a row and a column and returns an index if
     succeeds.
@@ -85,3 +37,22 @@ intToRow = show
 {-| 'intToCol' takes an index column and returns a column reference. -}
 intToCol :: Col -> String       -- TODO fix for greater than 27
 intToCol c = chr (naturalToInt $ c + (65)) : []
+
+{-| -}
+indexToRef :: Index -> String
+indexToRef (x, y) = intToCol x <> intToRow y
+
+{-| 'getIndex' returns the index of a cell -}
+getIndex :: Cell -> Index
+getIndex = (,) <$> row <*> col
+
+{-| 'obtainRowCol' obtains the row and the column from an input
+    reference. It returns @Nothing@ if it can not match the row or the
+    column. -}
+obtainRowCol :: String -> Maybe (String, String)
+obtainRowCol xs = do
+  r <- matchRegexAll rowRegex xs
+  c <- matchRegexAll columnRegex xs
+  return (snd' r, snd' c)
+  where
+    snd' (_, x, _, _) = x

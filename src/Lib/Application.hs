@@ -14,10 +14,11 @@ import Data.Cell
 import Data.ServerState
 import Data.ExternalModule
 import Lib.Cell
-import Lib.Eval
-import Lib.Indexing
 import Lib.Dependency
+import Lib.Eval
 import Lib.ExternalModule
+import Lib.Indexing
+import Lib.Parsing
 import Lib.ServerState
 
 runCell :: MVar ServerState -> WS.Connection -> Cell -> IO ()
@@ -29,10 +30,14 @@ runCell state conn cell = do
   updateDependentCells state conn cell'
 
 runEval :: MVar ServerState -> Cell -> ExceptT Error IO String
-runEval state cell = do
-  deps <- analyzeDependencies state cell
-  liftIO $ updateState cell state deps
-  res  <- eval state cell
+runEval _     (Cell { content = Nothing }) = return ""
+runEval state cell@(Cell { content = Just c }) = do
+  c'   <- except $ desugarContent c
+  let cell' = cell { content = Just c' }
+  deps <- analyzeDependencies state cell'
+  liftIO $ updateState cell' state deps
+  res  <- eval state cell'
+  liftIO $ putStrLn $ "[RES]:  " <> res
   return res
 
 updateDependentCells :: MVar ServerState -> WS.Connection -> Cell -> IO ()
@@ -42,26 +47,25 @@ updateDependentCells state conn cell = do
   mapM_ (runCell state conn . flip getCell ss) refs
 
 analyzeDependencies :: MVar ServerState -> Cell -> ExceptT Error IO (Index, [Index])
-analyzeDependencies state cell = ExceptT $ do
+analyzeDependencies _     cell@(Cell { content = Nothing }) = pure (getIndex cell, [])
+analyzeDependencies state cell@(Cell { content = Just c  }) = do
   (_, deps) <- liftIO $ readMVar state
   let i    = getIndex cell
-      refs = maybe [] parseReferences $ content cell
-  if circularDependencies $ addDependencies i refs deps
-     then pure $ Left  ("Circular dependencies found")
-     else pure $ Right (i, refs)
+      refs = parseReferences c
+  except $
+    if circularDependencies $ addDependencies i refs deps
+    then Left  ("Circular dependencies found")
+    else Right (i, refs)
 
 eval :: MVar ServerState -> Cell -> ExceptT Error IO String
-eval state cell = do
-  case content cell of
-    Nothing -> return ""
-    Just c  -> do
-      s <- liftIO $ readMVar state
-      let deps = getDependencies (getIndex cell) (snd s)
-      liftIO $ print deps
-      c'  <- except $ solveDependencies (fst s) deps c
-      liftIO $ print c'
-      res <- liftIO . runExceptT . evalCell $ c'
-      except res
+eval _      (Cell { content = Nothing }) = return ""
+eval s cell@(Cell { content = Just c  }) = do
+  state <- liftIO $ readMVar s
+  let deps = getDependencies (getIndex cell) (snd state)
+  c' <- except $ solveDependencies (fst state) deps c
+  liftIO $ putStrLn $ "[EVAL]: " <> c'
+  res <- liftIO . runExceptT . evalCell $ c'
+  except res
 
 runExternalModule :: ExternalModule -> MVar ServerState -> WS.Connection -> ExceptT Error IO ()
 runExternalModule extMod state conn = do
