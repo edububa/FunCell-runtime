@@ -30,7 +30,7 @@ data Cell = Cell { row :: Row
 
 instance Show Cell where
   show (Cell r c cont res) = "(" <> show r <> ", " <> show c <> "): " <>
-                             show cont <> "\n\t" <> show res
+                             show cont <> " " <> show res
 
 instance FromJSON Cell where
   parseJSON = withObject "cell" $ \o -> do

@@ -1,5 +1,5 @@
-{-| This module contains functions to handle the evaluation of the
-  content of cells. -}
+-- | This module contains functions to handle the evaluation of the
+-- content of cells.
 module Lib.Eval
   ( -- * Evaluation Functions
     context
@@ -24,7 +24,14 @@ import Data.Cell
 import Lib.Indexing
 import Lib.Cell
 
-{-| 'context' -}
+-- | 'context' configures the modules and the environment of the cell
+-- evaluation. The loaded modules are:
+--
+-- - Prelude
+-- - ExternalModule
+-- - Data.SpreadSheet
+-- - Data.SpreadSheet.Cell
+-- - Data.Function
 context :: InterpreterT IO ()
 context = do
   I.loadModules ["ExternalModule.hs"]
@@ -35,8 +42,13 @@ context = do
              , "Data.SpreadSheet.Cell"
              , "Data.Function"]
 
-{-| 'evalCell' -}
-evalCell :: [Char] -> ExceptT Error IO String
+-- | 'evalCell' typechecks and evals the content of a cell.
+--
+-- >>> runExceptT $ evalCell "1 + 2"
+-- Right "3"
+-- >>> runExceptT $ evalCell "1 + True"
+-- Left "Won't compile"
+evalCell :: String -> ExceptT Error IO String
 evalCell ""    = return ""
 evalCell input = ExceptT $ do
   typeRes <- liftIO $ I.runInterpreter $ do { context; typeChecks input }
@@ -47,7 +59,8 @@ evalCell input = ExceptT $ do
     (Right True, Right x) -> Right x
     _                     -> Left "Unknown error"
 
-{-| 'solveDependencies' -}
+-- | 'solveDependencies' returns the string with the cell dependencies
+-- solved. The @[Index]@ input must be in topological order.
 solveDependencies :: SpreadSheet Cell -> [Index] -> String -> Either Error String
 solveDependencies _ [] xs = Right xs
 solveDependencies state is _ = do
@@ -57,17 +70,17 @@ solveDependencies state is _ = do
     []  -> Right $ applyValues . rights $ vs
     err -> Left  $ foldr (<>) [] err
 
-{-| 'applyValues' -}
+-- | 'applyValues'
 applyValues :: [(String, String)] -> String
 applyValues [] = []             -- this case should never happen
 applyValues (x:[]) = snd x
 applyValues (x:xs) = applyValues $ (fmap . fmap) (applyValue x) xs
 
-{-| 'applyValue' -}
+-- | 'applyValue'
 applyValue :: (String, String) -> String -> String
 applyValue (from, to) = replace from to
 
-{-| 'cellToIndexAndVal' -}
+-- | 'cellToIndexAndVal'
 cellToIndexAndVal :: Cell -> Either Error (String, String)
 cellToIndexAndVal cell =
   case content cell of

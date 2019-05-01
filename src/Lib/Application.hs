@@ -21,14 +21,15 @@ import Lib.Indexing
 import Lib.Parsing
 import Lib.ServerState
 
+-- | 'runCell'
 runCell :: MVar ServerState -> WS.Connection -> Cell -> IO ()
 runCell state conn cell = do
   res <- runExceptT $ runEval state cell
   let cell' = cell { evalResult = res }
   sendResult conn cell'
-  modifyMVar_ state $ updateSpreadSheet cell'
   updateDependentCells state conn cell'
 
+-- | 'runEval'
 runEval :: MVar ServerState -> Cell -> ExceptT Error IO String
 runEval _     (Cell { content = Nothing }) = return ""
 runEval state cell@(Cell { content = Just c }) = do
@@ -40,12 +41,14 @@ runEval state cell@(Cell { content = Just c }) = do
   liftIO $ putStrLn $ "[RES]:  " <> res
   return res
 
+-- | 'updateDependentCells'
 updateDependentCells :: MVar ServerState -> WS.Connection -> Cell -> IO ()
 updateDependentCells state conn cell = do
   (ss, deps) <- readMVar state
   let refs = getDependents (getIndex cell) deps
   mapM_ (runCell state conn . flip getCell ss) refs
 
+-- | 'analyzeDependencies'
 analyzeDependencies :: MVar ServerState -> Cell -> ExceptT Error IO (Index, [Index])
 analyzeDependencies _     cell@(Cell { content = Nothing }) = pure (getIndex cell, [])
 analyzeDependencies state cell@(Cell { content = Just c  }) = do
@@ -57,21 +60,28 @@ analyzeDependencies state cell@(Cell { content = Just c  }) = do
     then Left  ("Circular dependencies found")
     else Right (i, refs)
 
+-- | 'eval'
 eval :: MVar ServerState -> Cell -> ExceptT Error IO String
-eval _      (Cell { content = Nothing }) = return ""
-eval s cell@(Cell { content = Just c  }) = do
-  state <- liftIO $ readMVar s
-  let deps = getDependencies (getIndex cell) (snd state)
-  c' <- except $ solveDependencies (fst state) deps c
+eval _          (Cell { content = Nothing }) = return ""
+eval state cell@(Cell { content = Just c  }) = do
+  s   <- liftIO $ readMVar state
+  let deps = getDependencies (getIndex cell) (snd s)
+  c'  <- except $ solveDependencies (fst s) deps c
   liftIO $ putStrLn $ "[EVAL]: " <> c'
   res <- liftIO . runExceptT . evalCell $ c'
+  let cell' = cell { evalResult = res }
+  liftIO $ modifyMVar_ state $ updateSpreadSheet cell'
   except res
 
+-- | 'runExternalModule'
 runExternalModule :: ExternalModule -> MVar ServerState -> WS.Connection -> ExceptT Error IO ()
 runExternalModule extMod state conn = do
+  liftIO $ print extMod
   saveAndLoadExternalModule extMod
   (ss, _) <- liftIO $ readMVar state
   liftIO $ mapM_ (runCell state conn) (toListValues ss)
 
+-- | 'sendResult' encodes and sends data that can be converted to
+-- JSON through an open WebSocket connection.
 sendResult :: ToJSON a => WS.Connection -> a -> IO ()
 sendResult conn = WS.sendTextData conn . encode
