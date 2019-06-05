@@ -84,7 +84,8 @@ desugar regex f s | res  == Nothing = Right s
                       let Just (pre, matched, post, _) = res
                       is <- rangeToIndex matched
                       rs <- genRange (fst is) (snd is)
-                      return $ f pre rs post
+                      post' <- desugar regex f post
+                      return $ f pre rs post'
                         where res = matchRegexAll regex s
 
 -- | 'genRange' returns the range between two given indices.
