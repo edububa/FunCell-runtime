@@ -1,5 +1,7 @@
 {-| This module contains the definition of the ServerState used by the
   web server.-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Data.ServerState where
 
 -- internal imports

@@ -23,4 +23,4 @@ saveAndLoadExternalModule (ExternalModule input) = ExceptT $ do
 -- located in the path where the program is executed.
 saveExternalModuleFile :: String -> IO ()
 saveExternalModuleFile input = do
-  writeFile "ExternalModule.hs" ("module ExternalModule where \n" <> input)
+  writeFile "ExternalModule.hs" input

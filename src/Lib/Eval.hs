@@ -36,8 +36,8 @@ context :: InterpreterT IO ()
 context = do
   I.loadModules ["ExternalModule.hs"]
   setImports [ "Prelude"
-             , "Data.SpreadSheet.Date"
              , "ExternalModule"
+             , "Data.SpreadSheet.Date"
              , "Data.SpreadSheet"
              , "Data.SpreadSheet.Cell"
              , "Data.Function"]

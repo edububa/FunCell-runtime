@@ -1,6 +1,7 @@
 {-| This module contains the type definitions and instances to deal with
   Cells. -}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Data.Cell
   ( -- * Type synonyms
@@ -14,6 +15,7 @@ module Data.Cell
 
 -- external imports
 import Data.Aeson
+import Data.SpreadSheet
 import GHC.Generics
 import Numeric.Natural
 
@@ -26,7 +28,7 @@ type Index = (Row, Col)
 data Cell = Cell { row :: Row
                  , col :: Col
                  , content :: Maybe String
-                 , evalResult :: Either Error String } deriving (Generic)
+                 , evalResult :: Either Error String } deriving (Generic, Read)
 
 instance Show Cell where
   show (Cell r c cont res) = "(" <> show r <> ", " <> show c <> "): " <>
@@ -39,5 +41,10 @@ instance FromJSON Cell where
     ct <- o .: "content"
     return $ Cell r c ct (Right "")
 
-
 instance ToJSON Cell
+
+deriving instance Generic (SpreadSheet a)
+
+instance ToJSON a => ToJSON (SpreadSheet a)
+
+instance FromJSON a => FromJSON (SpreadSheet a)

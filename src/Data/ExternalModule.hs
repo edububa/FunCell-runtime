@@ -14,3 +14,7 @@ instance FromJSON ExternalModule where
   parseJSON = withObject "externalModule" $ \o -> do
     text <- o .: "text"
     return $ ExternalModule text
+
+instance ToJSON ExternalModule where
+  toJSON (ExternalModule e) =
+    object [ "text" .= e ]
