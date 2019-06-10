@@ -28,6 +28,7 @@ runCell state conn cell = do
   let cell' = cell { evalResult = res }
   sendClient conn cell'
   updateDependentCells state conn cell'
+  liftIO $ modifyMVar_ state $ updateSpreadSheet cell'
 
 -- | 'runEval'
 runEval :: MVar ServerState -> Cell -> ExceptT Error IO String
@@ -99,4 +100,5 @@ load state conn path = do
   liftIO $ putStrLn $ "[INFO]: loaded file: '" <> path <> "'"
   saveAndLoadExternalModule $ snd s
   liftIO $ sendClient conn $ snd s
+  liftIO $ mapM_ (sendClient conn) (toListValues $ fst . fst $ s)
   liftIO $ updateClientCells state conn

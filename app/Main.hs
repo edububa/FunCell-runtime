@@ -42,3 +42,14 @@ main = do
   saveExternalModuleFile "module ExternalModule where\n"
   putStrLn "Done!"
   WS.runServer "127.0.0.1" 9160 $ application state
+
+
+data Mes = Enero | Febrero | Marzo | Abril | Mayo | Junio | Julio | Agosto | Septiembre | Octubre | Noviembre | Diciembre deriving (Show, Eq)
+
+data Fecha = Fecha { mes :: Mes, dia :: Int, ano :: Int }
+
+instance Show Fecha where
+  show (Fecha m d a) = show d <> " de " <> show m <> " de " <> show a
+
+filtrarMes :: Mes -> [(Int, Fecha)] -> [(Int, Fecha)]
+filtrarMes mes = filter (\(_, (Fecha m _ _)) -> mes == m)
