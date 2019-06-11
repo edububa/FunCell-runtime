@@ -71,6 +71,7 @@ removeDependency = removeEdge
 -- >>> updateDependency (0,0) [(1,2), (3,3)] x
 -- overlay (vertices [(0,1),(1,1)]) (edges [((0,0),(1,2)),((0,0),(3,3))])
 updateDependency :: Index -> [Index] -> Dependencies -> Dependencies
+updateDependency from []  ds = overlay (vertex from) ds
 updateDependency from tos ds = addDependencies from tos .
                                foldr (removeDependency from) ds .
                                toList . postSet from $ ds
@@ -91,7 +92,9 @@ getDependencies = reachable
 -- >>> getDependencies (0,0) x
 -- [(0,0),(0,1),(1,1)]
 getDependents :: Index -> Dependencies -> [Index]
-getDependents from = toList <$> preSet from
+getDependents from deps = pre <> pre'
+  where pre = toList <$> preSet from $ deps
+        pre' = concat . map (\x -> getDependents x deps) $ pre
 
 -- | 'circularDependencies' is a predicate that checks if a given
 -- graph has circular dependencies.

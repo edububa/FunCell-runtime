@@ -12,17 +12,17 @@ import Lib.Dependency
 
 -- | 'updateState' updates the state of the server with the given cell
 -- and its dependencies.
-updateState :: Cell -> MVar ServerState -> (Index, [Index]) -> IO ()
-updateState cell state deps = do
-  modifyMVar_ state $ updateSpreadSheet cell
-  modifyMVar_ state $ updateDeps deps
+updateState :: MVar ServerState -> Cell -> (Index, [Index]) -> IO ()
+updateState state cell deps = do
+  modifyMVar_ state $ updateCell cell
+  modifyMVar_ state $ updateDependencies deps
 
--- | 'updateDeps' updates the state of the dependencies of the
+-- | 'updateDependencies' updates the state of the dependencies of the
 -- @ServerState@.
-updateDeps :: Monad m => (Index, [Index]) -> ServerState -> m ServerState
-updateDeps (from, tos) (ss, ds) = return (ss, updateDependency from tos ds)
+updateDependencies :: Monad m => (Index, [Index]) -> ServerState -> m ServerState
+updateDependencies (from, tos) (ss, ds) = return (ss, updateDependency from tos ds)
 
--- | 'updateSpreadSheet' updates the @ServerState@ adding the new
+-- | 'updateCell' updates the @ServerState@ adding the new
 -- cell, or replaces it if already exists.
-updateSpreadSheet :: Monad m => Cell -> ServerState -> m ServerState
-updateSpreadSheet cell (ss, ds) = return (addCell cell ss, ds)
+updateCell :: Monad m => Cell -> ServerState -> m ServerState
+updateCell cell (ss, ds) = return (addCell cell ss, ds)

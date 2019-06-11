@@ -5,6 +5,7 @@ module Main where
 import Control.Concurrent
 import Control.Monad (forever)
 import Control.Monad.Trans.Except
+import Control.Monad.Trans.Maybe
 import Data.Aeson (decode)
 import qualified Network.WebSockets as WS
 -- internal imports
@@ -23,7 +24,8 @@ application state pending = do
     msg <- WS.receiveData conn
     case (decode msg) :: Maybe Cell of
       Nothing   -> return ()
-      Just cell -> runCell state conn cell
+      Just cell -> do evalCell state conn cell
+                      updateDependents state conn cell
     case (decode msg) :: Maybe Save of
       Nothing       -> return ()
       Just (Save x) -> save state x
@@ -33,7 +35,7 @@ application state pending = do
     case (decode msg) :: Maybe ExternalModule of
       Nothing     -> return $ Right ()
       Just extMod -> do runExceptT $ saveAndLoadExternalModule extMod
-                        updateClientCells state conn
+                        runMaybeT  $ updateSpreadSheet state conn
                         return $ Right ()
 main :: IO ()
 main = do
@@ -42,14 +44,3 @@ main = do
   saveExternalModuleFile "module ExternalModule where\n"
   putStrLn "Done!"
   WS.runServer "127.0.0.1" 9160 $ application state
-
-
-data Mes = Enero | Febrero | Marzo | Abril | Mayo | Junio | Julio | Agosto | Septiembre | Octubre | Noviembre | Diciembre deriving (Show, Eq)
-
-data Fecha = Fecha { mes :: Mes, dia :: Int, ano :: Int }
-
-instance Show Fecha where
-  show (Fecha m d a) = show d <> " de " <> show m <> " de " <> show a
-
-filtrarMes :: Mes -> [(Int, Fecha)] -> [(Int, Fecha)]
-filtrarMes mes = filter (\(_, (Fecha m _ _)) -> mes == m)
