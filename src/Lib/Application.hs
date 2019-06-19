@@ -4,6 +4,7 @@ module Lib.Application where
 
 -- external imports
 import Control.Concurrent
+import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Except
 import Control.Monad.Trans.Maybe
@@ -21,8 +22,10 @@ import Lib.ExternalModule
 import Lib.Indexing
 import Lib.Parsing
 import Lib.ServerState
+import System.Directory
 
--- | 'evalCell'
+-- | 'evalCell' evaluates the content of the received cell and sends
+-- it back to the server.
 evalCell :: MVar ServerState -> WS.Connection -> Cell -> IO ()
 evalCell state conn cell = do
   res <- runExceptT $ evalContent state cell
@@ -30,7 +33,7 @@ evalCell state conn cell = do
   send conn cell'
   modifyMVar_ state $ updateCell cell'
 
--- | 'save'
+-- | 'save' saves the actual state of the server in the received path.
 save :: MVar ServerState -> String -> IO ()
 save state path = do
   s <- readMVar state
@@ -38,9 +41,13 @@ save state path = do
   encodeFile path (s, ExternalModule file)
   putStrLn $ "[INFO]: saved file: '" <> path  <> "'"
 
--- | 'load'
+-- | 'load' loads the state saved in the file received as argument.
 load :: MVar ServerState -> WS.Connection -> String -> ExceptT Error IO ()
 load state conn path = do
+  exists <- liftIO $ doesFileExist path
+  when (not exists) $ liftIO $ putStrLn
+    $ "[ERROR]: file: '" <> path <> "' not found."
+  guard exists
   file <- liftIO (eitherDecodeFileStrict' path
                   :: IO (Either Error (ServerState, ExternalModule)))
   s    <- except file
@@ -51,21 +58,25 @@ load state conn path = do
   maybeToExceptT "" $ updateSpreadSheet state conn
   liftIO $ putStrLn $ "[INFO]: loaded file: '" <> path <> "'"
 
--- | 'updateDependents'
+-- | 'updateDependents' evaluates all the dependent cells of the
+-- argument cell.
 updateDependents :: MVar ServerState -> WS.Connection -> Cell -> IO ()
 updateDependents state conn cell = do
   (ss, deps) <- readMVar state
   let refs = getDependents (getIndex cell) deps
   mapM_ (evalCell state conn . flip getCell ss) refs
 
--- | 'updateSpreadSheet'
+-- | 'updateSpreadSheet' evaluates all the cells with content in the
+-- spreadsheet. Follows the topological order of the dependency graph.
 updateSpreadSheet :: MVar ServerState -> WS.Connection -> MaybeT IO ()
 updateSpreadSheet state conn = do
   (ss, ds) <- liftIO $ readMVar state
   is <- MaybeT . return $ getOrder ds
   liftIO . mapM_ (evalCell state conn) . map (flip getCell ss) $ reverse is
 
--- | 'evalContent'
+-- | 'evalContent' evaluates the content of the given cell. First
+-- analyzes its dependencies, if no problems are found, evaluates the
+-- content of the cell.
 evalContent :: MVar ServerState -> Cell -> ExceptT Error IO String
 evalContent _          (Cell { content = Nothing }) = return ""
 evalContent state cell@(Cell { content = Just c  }) = do
@@ -81,7 +92,7 @@ evalContent state cell@(Cell { content = Just c  }) = do
   liftIO $ putStrLn $ "[EVAL]: result  - " <> result
   return result
 
--- | 'analyzeDependencies'
+-- | 'analyzeDependencies' looks for circular references.
 analyzeDependencies :: MVar ServerState -> Cell -> ExceptT Error IO (Index, [Index])
 analyzeDependencies _     cell@(Cell { content = Nothing }) = pure (getIndex cell, [])
 analyzeDependencies state cell@(Cell { content = Just c  }) = do

@@ -76,7 +76,7 @@ updateDependency from tos ds = addDependencies from tos .
                                foldr (removeDependency from) ds .
                                toList . postSet from $ ds
 
--- | 'getOrder'
+-- | 'getOrder' returns the topological sort of the graph.
 getOrder :: Dependencies -> Maybe [Index]
 getOrder = topSort
 

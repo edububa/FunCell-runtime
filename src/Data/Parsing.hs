@@ -4,12 +4,12 @@ module Data.Parsing where
 import Text.Regex
 
 {-| The 'rangeRegex' value defines a regex that matches ranges of
-  references. For example: (A0..B0). -}
+  references. For example: (A0:B0). -}
 rangeRegex :: Regex
 rangeRegex = mkRegex "[(][A-Z]+[0-9]+[0-9]*[:][A-Z]+[0-9]+[0-9]*[)]"
 
 {-| The 'listRegex' value defines a regex that matches lists of
-  references. For example: [A0..B2]. -}
+  references. For example: [A0:B2]. -}
 listRegex :: Regex
 listRegex = mkRegex "[[][A-Z]+[0-9]+[0-9]*[:][A-Z]+[0-9]+[0-9]*[]]"
 

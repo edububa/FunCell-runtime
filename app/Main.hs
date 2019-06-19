@@ -37,6 +37,7 @@ application state pending = do
       Just extMod -> do runExceptT $ saveAndLoadExternalModule extMod
                         runMaybeT  $ updateSpreadSheet state conn
                         return $ Right ()
+
 main :: IO ()
 main = do
   state <- newMVar newServerState

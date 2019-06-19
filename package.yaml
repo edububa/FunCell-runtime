@@ -1,10 +1,10 @@
 name:                FunCell-runtime
-version:             0.1.0.0
+version:             1.0.0
 github:              "edububa/FunCell-runtime"
 license:             BSD3
 author:              "Luis Eduardo Bueso de Barrio"
 maintainer:          "luiseduardo.bueso.debarrio@alumnos.upm.es"
-copyright:           "2018 Luis Eduardo Bueso de Barrio"
+copyright:           "2019 Luis Eduardo Bueso de Barrio"
 
 extra-source-files:
 - README.org
@@ -34,6 +34,7 @@ dependencies:
 - MissingH
 - transformers
 - algebraic-graphs
+- directory
 
 library:
   source-dirs: src
