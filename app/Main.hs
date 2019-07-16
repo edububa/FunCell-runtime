@@ -15,10 +15,12 @@ import Data.Messages
 import Data.ServerState
 import Lib.Application
 import Lib.ExternalModule
+-- debug
+import Debug.Trace (traceIO)
 
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do
-  putStrLn "[INFO]: Connection started!"
+  traceIO "[INFO]: Connection started!"
   conn <- WS.acceptRequest pending
   forever $ do
     msg <- WS.receiveData conn

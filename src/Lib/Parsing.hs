@@ -30,7 +30,8 @@ import Lib.Indexing
 -- | 'parseReferences' obtains all the indices from the references of
 -- an input @String@.
 parseReferences :: String -> [Index]
-parseReferences = catMaybes . map rowColToInt . catMaybes . map obtainRowCol . matchReferences
+parseReferences = catMaybes . map rowColToInt . catMaybes .
+                  map obtainRowCol . matchReferences
 
 -- | 'matchReferences' obtains all the matching references in the
 -- input.

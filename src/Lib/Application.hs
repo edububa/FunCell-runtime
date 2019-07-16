@@ -23,6 +23,8 @@ import Lib.Indexing
 import Lib.Parsing
 import Lib.ServerState
 import System.Directory
+-- debug
+import Debug.Trace (traceIO)
 
 -- | 'evalCell' evaluates the content of the received cell and sends
 -- it back to the server.
@@ -39,13 +41,13 @@ save state path = do
   s <- readMVar state
   file <- readFile "ExternalModule.hs" -- unsafe
   encodeFile path (s, ExternalModule file)
-  putStrLn $ "[INFO]: saved file: '" <> path  <> "'"
+  traceIO $ "[INFO]: saved file: '" <> path  <> "'"
 
 -- | 'load' loads the state saved in the file received as argument.
 load :: MVar ServerState -> WS.Connection -> String -> ExceptT Error IO ()
 load state conn path = do
   exists <- liftIO $ doesFileExist path
-  when (not exists) $ liftIO $ putStrLn
+  when (not exists) $ liftIO $ traceIO
     $ "[ERROR]: file: '" <> path <> "' not found."
   guard exists
   file <- liftIO (eitherDecodeFileStrict' path
@@ -56,7 +58,7 @@ load state conn path = do
   liftIO $ send conn $ snd s
   liftIO $ mapM_ (send conn) (toListValues $ fst . fst $ s)
   maybeToExceptT "" $ updateSpreadSheet state conn
-  liftIO $ putStrLn $ "[INFO]: loaded file: '" <> path <> "'"
+  liftIO $ traceIO $ "[INFO]: loaded file: '" <> path <> "'"
 
 -- | 'updateDependents' evaluates all the dependent cells of the
 -- argument cell.
@@ -87,9 +89,9 @@ evalContent state cell@(Cell { content = Just c  }) = do
   (ss, ds) <- liftIO $ readMVar state
   let dependencies = getDependencies (fst deps) ds
   solvedContent <- except $ solveDependencies ss dependencies desugaredContent
-  liftIO $ putStrLn $ "[EVAL]: content - " <> solvedContent
+  liftIO $ traceIO $ "[EVAL]: content - " <> solvedContent
   result <- eval solvedContent
-  liftIO $ putStrLn $ "[EVAL]: result  - " <> result
+  liftIO $ traceIO $ "[EVAL]: result  - " <> result
   return result
 
 -- | 'analyzeDependencies' looks for circular references.

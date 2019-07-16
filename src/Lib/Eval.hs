@@ -42,7 +42,8 @@ context = do
              , "Data.SpreadSheet.Date"
              , "Data.SpreadSheet"
              , "Data.SpreadSheet.Cell"
-             , "Data.Function"]
+             , "Data.Function"
+             , "Data.Either" ]
 
 -- | 'eval' typechecks and evals the content of a cell.
 --
@@ -56,10 +57,10 @@ eval input = ExceptT $ do
   typeRes <- liftIO $ runInterpreter $ do { context; typeChecks input }
   evalRes <- liftIO $ runInterpreter $ do { context; I.eval input }
   return $ case (typeRes, evalRes) of
-    (Right False, _)      -> Left "Won't compile"
-    (Right True, Left _)  -> Left "Not showable"
+    (Right False, _)      -> Left $ "eval error;\n\t - expression: " <> input
+    (Right True, Left _)  -> Left $ "not showable;\n\t - expression: " <> input
     (Right True, Right x) -> Right x
-    _                     -> Left "Unknown error"
+    _                     -> Left $ "unknown error;\n\t expression: " <> input
 
 -- | 'solveDependencies' returns the string with the cell dependencies
 -- solved. The @[Index]@ input must be in topological order.
